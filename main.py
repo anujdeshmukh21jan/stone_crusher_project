@@ -196,6 +196,7 @@ def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, wei
     c.save()
 
     print(f"Receipt generated: {file_name}")
+    print("Receipt generated")
 
 # Function to print the receipt
 def print_receipt():
@@ -243,7 +244,7 @@ def refresh_date_time():
 # Creating the main window
 root = ctk.CTk()
 root.title("Stone Crusher")
-root.attributes('-fullscreen', True)  # Open in full screen mode
+# root.attributes('-fullscreen', True)  # Open in full screen mode
 root.geometry("1000x800")  
 root.bind('<Return>', submit_form)
 ctk.set_appearance_mode("dark")
@@ -372,3 +373,7 @@ refresh_date_time()
 
 # Start the main loop
 root.mainloop()
+
+
+
+
