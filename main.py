@@ -1,14 +1,48 @@
 import tkinter as tk
+from tkinter import ttk
 import customtkinter as ctk
 from datetime import datetime
 import sqlite3
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+import os
+from tkinter.ttk import Combobox
 
+import platform
+
+DB_PATH = "/home/developer/Downloads/stone_crusher_project/crusher.db"
+BASE_DIR = "/home/developer/Downloads/stone_crusher_project/"
+if platform.system() == "Windows":
+    import win32print
+    import win32api
+else:
+    import cups
+
+
+def print_receipt(file_path):
+    if platform.system() == "Windows":
+        win32api.ShellExecute(
+            0,
+            "print",
+            file_path,
+            f'/d:"{win32print.GetDefaultPrinter()}"',
+            ".",
+            0
+        )
+    else:
+        print("Platform is not Windows")
+        conn = cups.Connection()
+        print("CUPS connection established")
+        printers = conn.getPrinters()
+        print("Printers retrieved")
+        printer_name = list(printers.keys())[0]  # Use the first available printer
+        print(f"Printer name: {printer_name}")
+        conn.printFile(printer_name, file_path, "Receipt", {})
+        print("File printed")
 
 # Function to initialize the database
 def initialize_db():
-    conn = sqlite3.connect('crusher.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS records (
@@ -17,7 +51,7 @@ def initialize_db():
             name TEXT,
             driver_name TEXT,
             time TEXT,
-            date TEXT,
+            date DATE,
             vehicle_number TEXT,
             weight_before_load REAL,
             weight_after_load REAL,
@@ -26,16 +60,27 @@ def initialize_db():
             sizes TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id INTEGER PRIMARY KEY,
+            manufacuturer TEXT,
+            model TEXT,
+            registration_number TEXT,
+            date_of_purchase TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
     
 def generate_unique_bill_no():
-    conn = sqlite3.connect('crusher.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
-    cursor.execute('SELECT MAX(bill_no) FROM records')
-    highest_bill_no = cursor.fetchone()[0]
-
+    try:
+        cursor.execute('SELECT MAX(id) FROM records')
+        highest_bill_no = cursor.fetchone()[0]
+    except:
+        return "1"
+    
     if highest_bill_no is None:
         new_bill_no = 1
     else:
@@ -86,6 +131,7 @@ def calculate_total_weight_and_brass():
         entry_brass.insert(0, "Error")
         entry_brass.configure(state='disabled')
 
+
 def submit_form(event=None):
     # Get values from entries
     bill_no = entry_bill_no.get()
@@ -128,7 +174,7 @@ def submit_form(event=None):
     sizes_selected = [str(size) for size, var in zip([6, 12, 20, 40], size_vars) if var.get()]
 
     # Insert data into the database
-    conn = sqlite3.connect('crusher.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO records (bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes)
@@ -154,10 +200,49 @@ def submit_form(event=None):
     # Refresh the form fields
     refresh_form()
     refresh_date_time()
-
+    tk.messagebox.showinfo("Success", "report added successfully")
     # Generate PDF receipt
-    generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes_selected)
+    file = generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes_selected)
+    print_receipt(file)
+    
+def add_vehicle(event=None):
+    manufacturer = entry_manufacturer.get()
+    model = entry_model.get()
+    registration_number = entry_registration_number.get()
+    date_of_purchase = entry_date_of_purchase.get()
+    
+    required_fields = [
+        (entry_manufacturer, "manufacturer"),
+        (entry_model, "Model Name"),
+        (entry_registration_number, "Registration Number"),
+        (entry_date_of_purchase, "date_of_purchase")
+    ]
+    
+    
+    for entry, field_name in required_fields:
+        if not entry.get():
+            tk.messagebox.showerror("Error", f"{field_name} is required.")
+            return
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO vehicles (manufacuturer, model, registration_number, date_of_purchase)
+        VALUES (?, ?, ?, ?)
+    ''', (manufacturer, model, registration_number, date_of_purchase))
+    conn.commit()
+    conn.close()
+    tk.messagebox.showinfo("Success", "Vehicle added successfully")
+    refresh_vehicle_form()
 
+def refresh_vehicle_form():
+    entry_manufacturer.delete(0, tk.END)
+    entry_model.delete(0, tk.END)
+    entry_registration_number.delete(0, tk.END)
+    entry_date_of_purchase.delete(0, tk.END)
+    
+    
+    
 def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes_selected):
     file_name = f"receipt_{bill_no}.pdf"
     c = canvas.Canvas(file_name, pagesize=letter)
@@ -197,14 +282,25 @@ def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, wei
 
     print(f"Receipt generated: {file_name}")
     print("Receipt generated")
+    return file_name
 
-# Function to print the receipt
-def print_receipt():
-    tk.messagebox.showinfo("Print Receipt", "Receipt Printed")
 
+def get_vehicle_numbers():
+    # This function should return a list of vehicle numbers from the vehicle table
+    # Implement this function based on your database setup
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT registration_number FROM vehicles')
+    data = cursor.fetchall()
+    vehicle_no = []
+    for i in data:
+        vehicle_no.append(i[0])
+    return vehicle_no
 # Function to generate a report
+
 def generate_report():
-    tk.messagebox.showinfo("Generate Report", "Report Generated")
+    import subprocess
+    subprocess.run(["python3", BASE_DIR+"/demo3.py"])
 
 
 # Function to refresh the form
@@ -245,7 +341,7 @@ def refresh_date_time():
 root = ctk.CTk()
 root.title("Stone Crusher")
 # root.attributes('-fullscreen', True)  # Open in full screen mode
-root.geometry("1000x800")  
+root.geometry("1500x1000")  
 root.bind('<Return>', submit_form)
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -275,14 +371,26 @@ report_button.pack(side='right', padx=10, pady=5)
 print_button = ctk.CTkButton(nav_frame, text="Print Receipt", font=ctk.CTkFont(size=16), command=print_receipt)
 print_button.pack(side='right', padx=10, pady=5)
 
-add_vehicle_button = ctk.CTkButton(nav_frame, text="Add Vehicle", font=ctk.CTkFont(size=16))
+add_vehicle_button = ctk.CTkButton(nav_frame, text="Add Vehicle", font=ctk.CTkFont(size=16), command=lambda: notebook.select(add_vehicle_tab))
 add_vehicle_button.pack(side='right', padx=10, pady=5)
 
-home_button = ctk.CTkButton(nav_frame, text="Home", font=ctk.CTkFont(size=16), command=refresh_form)
+home_button = ctk.CTkButton(nav_frame, text="Home", font=ctk.CTkFont(size=16), command=lambda: notebook.select(main_tab))
 home_button.pack(side='right', padx=10, pady=5)
 
+# Notebook for tab management
+notebook = ttk.Notebook(root)
+notebook.pack(fill='both', expand=True)
+
+# Main Tab
+main_tab = ctk.CTkFrame(notebook)
+notebook.add(main_tab, state='hidden')
+
+# Add Vehicle Tab
+add_vehicle_tab = ctk.CTkFrame(notebook)
+notebook.add(add_vehicle_tab, state='hidden')
+
 # Frame for the input fields
-frame = ctk.CTkFrame(root)
+frame = ctk.CTkFrame(main_tab)
 frame.pack(pady=20, padx=30, fill="both", expand=True)
 
 # Bill No.
@@ -305,18 +413,31 @@ entry_date.grid(row=0, column=5, padx=10, pady=10)
 refresh_date_time_button = ctk.CTkButton(frame, text="⟳", width=30, font=ctk.CTkFont(size=18), command=refresh_date_time)
 refresh_date_time_button.grid(row=0, column=6, padx=10, pady=10)
 
+
+
+# entry_name = AutocompleteEntry(frame, width=200, font=ctk.CTkFont(size=18), field='name')
+# entry_name.grid(row=1, column=1, padx=10, pady=10)
+
+# entry_driver_name = AutocompleteEntry(frame, width=200, font=ctk.CTkFont(size=18), field='driver_name')
+# entry_driver_name.grid(row=1, column=5, padx=10, pady=10)
+
+# entry_vehicle_number = AutocompleteEntry(frame, width=200, font=ctk.CTkFont(size=18), field='vehicle_number')
+# entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10)
+
 # Name
 name_label = ctk.CTkLabel(frame, text="Name: *", font=ctk.CTkFont(size=18))
 name_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
 entry_name = ctk.CTkEntry(frame, width=200, font=ctk.CTkFont(size=18))
-entry_name.grid(row=1, column=1, padx=10, pady=10)
+entry_name.grid(row=1, column=1, padx=10, pady=10) 
 
 # Vehicle Number
 vehicle_number_label = ctk.CTkLabel(frame, text="Vehicle Number: *", font=ctk.CTkFont(size=18))
 vehicle_number_label.grid(row=1, column=2, padx=10, pady=10, sticky="w")
-entry_vehicle_number = ctk.CTkEntry(frame, width=200, font=ctk.CTkFont(size=18))
-entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10)
 
+# Create the combobox for vehicle number
+vehicle_numbers = get_vehicle_numbers()
+entry_vehicle_number = Combobox(frame, values=vehicle_numbers, font=("Arial", 18))
+entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10, sticky="ew")
 # Driver Name
 driver_name_label = ctk.CTkLabel(frame, text="Driver Name: *", font=ctk.CTkFont(size=18))
 driver_name_label.grid(row=1, column=4, padx=10, pady=10, sticky="w")
@@ -366,6 +487,44 @@ for idx, size in enumerate(sizes):
 # Submit Button
 submit_button = ctk.CTkButton(root, text="Submit", font=ctk.CTkFont(size=18), command=submit_form)
 submit_button.pack(pady=20)
+
+# Frame for the add vehicle form in the add vehicle tab
+add_vehicle_frame = ctk.CTkFrame(add_vehicle_tab)
+add_vehicle_frame.pack(pady=40, padx=40, fill="both", expand=True)
+
+# Add Vehicle form fields
+# Manufacturer
+manufacturer_label = ctk.CTkLabel(add_vehicle_frame, text="Manufacturer:", font=ctk.CTkFont(size=18))
+manufacturer_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+entry_manufacturer = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_manufacturer.grid(row=0, column=1, padx=10, pady=10)
+
+# Model
+model_label = ctk.CTkLabel(add_vehicle_frame, text="Model:", font=ctk.CTkFont(size=18))
+model_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+entry_model = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_model.grid(row=1, column=1, padx=10, pady=10)
+
+# Registration Number
+registration_number_label = ctk.CTkLabel(add_vehicle_frame, text="Registration Number:", font=ctk.CTkFont(size=18))
+registration_number_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+entry_registration_number = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_registration_number.grid(row=2, column=1, padx=10, pady=10)
+
+# Date of Purchase
+date_of_purchase_label = ctk.CTkLabel(add_vehicle_frame, text="Date of Purchase:", font=ctk.CTkFont(size=18))
+date_of_purchase_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+entry_date_of_purchase = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_date_of_purchase.grid(row=3, column=1, padx=10, pady=10)
+
+# Add Button
+add_vehicle_button = ctk.CTkButton(add_vehicle_frame, text="Add", font=ctk.CTkFont(size=18), command = add_vehicle)
+add_vehicle_button.grid(row=4, column=1, pady=20)
+
+
+# Contact details
+contact_label = ctk.CTkLabel(root, text="Contact: +91 9168663915", font=ctk.CTkFont(size=18))
+contact_label.place(relx=1.0, rely=1.0, anchor='se', x=-10, y=-10)
 
 # Initialize date and time fields
 initialize_db()
