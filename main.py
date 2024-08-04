@@ -7,11 +7,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 from tkinter.ttk import Combobox
-
+from constant import DB_PATH, BASE_DIR
 import platform
-
-DB_PATH = "/home/developer/Downloads/stone_crusher_project/crusher.db"
-BASE_DIR = "/home/developer/Downloads/stone_crusher_project/"
 if platform.system() == "Windows":
     import win32print
     import win32api

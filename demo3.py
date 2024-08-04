@@ -6,9 +6,7 @@ from datetime import datetime, timedelta
 import sqlite3
 import pandas as pd
 import os
-
-DB_PATH = "/home/developer/Downloads/stone_crusher_project/crusher.db"
-
+from constant import DB_PATH, BASE_DIR
 # Fetch data from the database
 def fetch_data():
     conn = sqlite3.connect(DB_PATH)
@@ -158,14 +156,14 @@ class VehicleDataApp(ctk.CTk):
             query += " AND vehicle_number LIKE ?"
             params.append(f"%{vehicle_number}%")
             print("Adding vehicle number filter:", f"%{vehicle_number}%")
-        if start_date:
-            query += " AND date >= ?"
-            params.append(start_date)
-            print("Adding start date filter:", start_date)
-        if end_date:
-            query += " AND date <= ?"
-            params.append(end_date)
-            print("Adding end date filter:", end_date)
+        # if start_date:
+        #     query += " AND date >= ?"
+        #     params.append(start_date)
+        #     print("Adding start date filter:", start_date)
+        # if end_date:
+        #     query += " AND date <= ?"
+        #     params.append(end_date)
+        #     print("Adding end date filter:", end_date)
 
         print("Executing query:", query)
         print("With parameters:", params)
@@ -237,14 +235,14 @@ class VehicleDataApp(ctk.CTk):
         if vehicle_number:
             query += " AND vehicle_number LIKE ?"
             params.append(f"%{vehicle_number}%")
-        if start_date:
-            query += " AND date >= ?"
-            params.append(start_date)
-            print("Adding start date filter:", start_date)
-        if end_date:
-            query += " AND date <= ?"
-            params.append(end_date)
-            print("Adding end date filter:", end_date)
+        # if start_date:
+        #     query += " AND date >= ?"
+        #     params.append(start_date)
+        #     print("Adding start date filter:", start_date)
+        # if end_date:
+        #     query += " AND date <= ?"
+        #     params.append(end_date)
+        #     print("Adding end date filter:", end_date)
 
         cursor.execute(query, params)
         filtered_data = cursor.fetchall()
@@ -258,7 +256,7 @@ class VehicleDataApp(ctk.CTk):
             return
 
         df = pd.DataFrame(filtered_data, columns=["bill_no", "name", "driver_name", "time", "date", "vehicle_number", "weight_before_load", "weight_after_load", "total_weight_tonnes", "brass", "sizes"])
-        file_path = f"/home/developer/Downloads/filtered_data{str(datetime.now())}.xlsx"
+        file_path = f"{BASE_DIR}/report-{str(datetime.now())}.xlsx"
         df.to_excel(file_path, index=False)
 
         # Confirm file saved
@@ -267,7 +265,7 @@ class VehicleDataApp(ctk.CTk):
         else:
             print(f"Data successfully exported to {file_path}")
 
-        print(df)
+        tk.messagebox.showinfo("Success", f"Excel generate successfully at {file_path}")
 
 if __name__ == "__main__":
     app = VehicleDataApp()
