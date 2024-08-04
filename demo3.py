@@ -11,7 +11,7 @@ from constant import DB_PATH, BASE_DIR
 def fetch_data():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT bill_no, name, driver_name, date, vehicle_number FROM records")
+    cursor.execute("SELECT bill_no, name, driver_name, date, vehicle_number, total_weight_tonnes, brass, sizes FROM records")
     data = cursor.fetchall()
     conn.close()
     return data
@@ -66,9 +66,9 @@ class VehicleDataApp(ctk.CTk):
 
         # Filter by Vehicle Number
         filter_vehicle_number_label = ctk.CTkLabel(top_frame, text="Vehicle Number:", font=("Arial", 14))
-        filter_vehicle_number_label.grid(row=1, column=8, padx=5, pady=5, sticky=tk.W)
+        filter_vehicle_number_label.grid(row=1, column=6, padx=5, pady=5, sticky=tk.W)
         self.vehicle_number_entry = ctk.CTkEntry(top_frame, font=("Arial", 14))
-        self.vehicle_number_entry.grid(row=1, column=9, padx=5, pady=5, sticky=tk.W)
+        self.vehicle_number_entry.grid(row=1, column=7, padx=5, pady=5, sticky=tk.W)
 
         # Filter by Start Date
         filter_start_date_label = ctk.CTkLabel(top_frame, text="Start Date:", font=("Arial", 14))
@@ -95,7 +95,7 @@ class VehicleDataApp(ctk.CTk):
         download_excel_button.grid(row=2, column=6, padx=5, pady=10, sticky=tk.W)
 
         # Table
-        fields = ['Bill No', 'Name', 'Driver Name', 'Date', 'Vehicle Number']
+        fields = ['Bill No', 'Name', 'Driver Name', 'Date', 'Vehicle Number', 'Total Weight Tonnes', 'Brass', 'Sizes']
         self.tree = ttk.Treeview(self, columns=fields, show='headings')
         for field in fields:
             self.tree.heading(field, text=field, command=lambda c=field: self.sort_table(c))
@@ -130,7 +130,7 @@ class VehicleDataApp(ctk.CTk):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         query = '''
-            SELECT bill_no, name, driver_name, date, vehicle_number 
+            SELECT bill_no, name, driver_name, date, vehicle_number, total_weight_tonnes, brass, sizes
             FROM records 
             WHERE 1=1
         '''
