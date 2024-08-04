@@ -124,8 +124,8 @@ class VehicleDataApp(ctk.CTk):
         name = self.name_entry.get().lower()
         driver_name = self.driver_name_entry.get().lower()
         vehicle_number = self.vehicle_number_entry.get().lower()
-        start_date = self.start_date_entry.get_date().strftime('%d/%m/%Y')
-        end_date = self.end_date_entry.get_date().strftime('%d/%m/%Y')
+        start_date = self.start_date_entry.get_date().strftime('%Y-%m-%d')
+        end_date = self.end_date_entry.get_date().strftime('%Y-%m-%d')
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -156,14 +156,14 @@ class VehicleDataApp(ctk.CTk):
             query += " AND vehicle_number LIKE ?"
             params.append(f"%{vehicle_number}%")
             print("Adding vehicle number filter:", f"%{vehicle_number}%")
-        # if start_date:
-        #     query += " AND date >= ?"
-        #     params.append(start_date)
-        #     print("Adding start date filter:", start_date)
-        # if end_date:
-        #     query += " AND date <= ?"
-        #     params.append(end_date)
-        #     print("Adding end date filter:", end_date)
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+            print("Adding start date filter:", start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
+            print("Adding end date filter:", end_date)
 
         print("Executing query:", query)
         print("With parameters:", params)
@@ -208,9 +208,9 @@ class VehicleDataApp(ctk.CTk):
         name = self.name_entry.get().lower()
         driver_name = self.driver_name_entry.get().lower()
         vehicle_number = self.vehicle_number_entry.get().lower()
-        start_date = self.start_date_entry.get_date().strftime('%d/%m/%Y')
-        end_date = self.end_date_entry.get_date().strftime('%d/%m/%Y')
-
+        start_date = self.start_date_entry.get_date().strftime('%Y-%m-%d')
+        end_date = self.end_date_entry.get_date().strftime('%Y-%m-%d')
+        
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         query = '''
@@ -235,14 +235,14 @@ class VehicleDataApp(ctk.CTk):
         if vehicle_number:
             query += " AND vehicle_number LIKE ?"
             params.append(f"%{vehicle_number}%")
-        # if start_date:
-        #     query += " AND date >= ?"
-        #     params.append(start_date)
-        #     print("Adding start date filter:", start_date)
-        # if end_date:
-        #     query += " AND date <= ?"
-        #     params.append(end_date)
-        #     print("Adding end date filter:", end_date)
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+            print("Adding start date filter:", start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
+            print("Adding end date filter:", end_date)
 
         cursor.execute(query, params)
         filtered_data = cursor.fetchall()

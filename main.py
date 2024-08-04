@@ -324,7 +324,7 @@ def refresh_date_time():
     entry_bill_no.insert(0, generate_unique_bill_no())
     entry_bill_no.configure(state='disabled')
     current_time = datetime.now().strftime("%I:%M:%S %p")
-    current_date = datetime.now().strftime("%d/%m/%Y")
+    current_date = datetime.now().strftime("%Y-%m-%d")
     entry_time.configure(state='normal')
     entry_time.delete(0, tk.END)
     entry_time.insert(0, current_time)
