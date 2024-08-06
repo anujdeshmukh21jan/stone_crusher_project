@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt</title>
+    <style>
+        @page {
+            size: A4; /* You can adjust this size if needed */
+            margin: 20mm; /* Adjust margins if needed */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f7f7f7;
+            margin: 0;
+            margin-top: 400px;
+        }
+        .receipt {
+            width: 310px;
+            border: 2px solid #333;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .sub-header {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        .details, .items {
+            width: 100%;
+            margin-bottom: 10px;
+            border-collapse: collapse;
+        }
+        .details td, .items td {
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        .details td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+        .details td:last-child {
+            width: 60%;
+        }
+        .items td {
+            width: 50%;
+        }
+        .signature {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        .signature div {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-box {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 5px;
+        }
+        .flex-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            Aashirwad Stone Crusher, Junner
+        </div>
+        <div class="sub-header">
+            Quotation<br>
+            <span>Mo. 9422749882, 9009115203, 7218803814</span>
+        </div>
+        <div class="flex-container">
+            <div>
+                <strong>Receipt No.</strong> {{ data.bill_no }}
+            </div>
+            <div>
+                <strong>Date:</strong> {{ data.date }}
+            </div>
+        </div>
+        <table class="details">
+            <tr>
+                <td>Name</td>
+                <td>{{ data.name }}</td>
+            </tr>
+            <tr>
+                <td>Vehicle No.</td>
+                <td>{{ data.vehicle_number }}</td>
+            </tr>
+            <tr>
+                <td>Weight before load</td>
+                <td>{{ data.weight_before_load }}</td>
+            </tr>
+            <tr>
+                <td>Weight after load</td>
+                <td>{{ data.weight_after_load }}</td>
+            </tr>
+            <tr>
+                <td>Total load</td>
+                <td>{{ data.net_weight }}</td>
+            </tr>
+            <tr>
+                <td>Weight in tonnes</td>
+                <td>{{ data.total_weight_tonnes }}</td>
+            </tr>
+            <tr>
+                <td>Weight in brass</td>
+                <td>{{ data.brass }}</td>
+            </tr>
+            <tr>
+                <td>Sizes</td>
+                <td>{{ data.sizes_selected }}</td>
+            </tr>
+        </table>
+        
+        <div class="signature">
+            <div>
+                <div class="signature-box"></div>
+                Driver's Signature
+            </div>
+            <div>
+                <div class="signature-box"></div>
+                Recipient's Signature
+            </div>
+        </div>
+    </div>
+</body>
+</html>

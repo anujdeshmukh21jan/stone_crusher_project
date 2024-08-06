@@ -6,16 +6,60 @@ import sqlite3
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
+
 from tkinter.ttk import Combobox
-from constant import DB_PATH, BASE_DIR
+from constant import DB_PATH, BASE_DIR, RECIEPT_PATH
 import platform
 if platform.system() == "Windows":
     import win32print
     import win32api
 else:
     import cups
+    
+from jinja2 import Environment, FileSystemLoader
+import pdfkit
 
+import pdfkit
 
+def convert_html_to_pdf(html_template):
+    file_name = f"{RECIEPT_PATH}/receipt{str(datetime.now())}.pdf"
+    try:
+        # Convert HTML string to PDF
+        pdfkit.from_string(str(html_template), file_name)
+        print(f"PDF file generated: {file_name}")
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+
+    return file_name
+
+def render_template(filepath, data):
+    # Setup Jinja2 environment
+    file_loader = FileSystemLoader('.')
+    env = Environment(loader=file_loader)
+
+    # Load the template
+    try:
+        template = env.get_template('reciept.html')
+    except Exception as e:
+        print(f"Error loading template: {e}")
+        exit()
+
+    # Render the template with data
+    try:
+        html_output = template.render(data=data)
+        if not html_output.strip():
+            print("Rendered HTML is empty.")
+        else:
+            # Save the rendered HTML to a file
+            with open(BASE_DIR+'receipt_output.html', 'w') as file:
+                file.write(html_output)
+            with open(BASE_DIR+"receipt_output.html", 'r') as f:
+                html_content = f.read()
+            print("HTML file generated: receipt_output.html")
+            return html_content
+    except Exception as e:
+        print(f"Error rendering template: {e}")
+        
 def print_receipt(file_path):
     if platform.system() == "Windows":
         win32api.ShellExecute(
@@ -198,8 +242,22 @@ def submit_form(event=None):
     refresh_form()
     refresh_date_time()
     tk.messagebox.showinfo("Success", "report added successfully")
+    data = {
+        "bill_no": bill_no,
+        "name": name,
+        "driver_name": driver_name,
+        "date": date,
+        "vehicle_number": vehicle_number,
+        "weight_before_load": weight_before_load,
+        "weight_after_load": weight_after_load,
+        "net_weight": weight_after_load - weight_before_load,
+        "total_weight_tonnes": total_weight_tonnes,
+        "brass": brass,
+        "sizes_selected": ", ".join([i+" mm" for i in sizes_selected])
+    }
+    html_template = render_template(os.path.join(BASE_DIR, "reciept.html"), data=data)
     # Generate PDF receipt
-    file = generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes_selected)
+    file = convert_html_to_pdf(html_template)
     print_receipt(file)
     
 def add_vehicle(event=None):
