@@ -107,6 +107,7 @@ def initialize_db():
             manufacuturer TEXT,
             model TEXT,
             registration_number TEXT,
+            weight REAL,
             date_of_purchase TIMESTAMP
         )
     ''')
@@ -209,7 +210,7 @@ def submit_form(event=None):
 
     # Calculate total weight and brass
     total_weight_tonnes = (weight_after_load - weight_before_load) / 1000
-    brass = (weight_after_load - weight_before_load) / 4
+    brass = total_weight_tonnes / 4
 
     # Get selected sizes
     sizes_selected = [str(size) for size, var in zip([6, 12, 20, 40], size_vars) if var.get()]
@@ -265,6 +266,7 @@ def add_vehicle(event=None):
     model = entry_model.get()
     registration_number = entry_registration_number.get()
     date_of_purchase = entry_date_of_purchase.get()
+    weight = entry_weight.get()
     
     required_fields = [
         (entry_manufacturer, "manufacturer"),
@@ -282,9 +284,9 @@ def add_vehicle(event=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO vehicles (manufacuturer, model, registration_number, date_of_purchase)
-        VALUES (?, ?, ?, ?)
-    ''', (manufacturer, model, registration_number, date_of_purchase))
+        INSERT INTO vehicles (manufacuturer, model, registration_number, date_of_purchase, weight)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (manufacturer, model, registration_number, date_of_purchase, weight))
     conn.commit()
     conn.close()
     tk.messagebox.showinfo("Success", "Vehicle added successfully")
@@ -295,6 +297,7 @@ def refresh_vehicle_form():
     entry_model.delete(0, tk.END)
     entry_registration_number.delete(0, tk.END)
     entry_date_of_purchase.delete(0, tk.END)
+    entry_weight.delete(0, tk.END)
     
     
     
@@ -343,20 +346,44 @@ def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, wei
 def get_vehicle_numbers():
     # This function should return a list of vehicle numbers from the vehicle table
     # Implement this function based on your database setup
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT registration_number FROM vehicles')
-    data = cursor.fetchall()
-    vehicle_no = []
-    for i in data:
-        vehicle_no.append(i[0])
-    return vehicle_no
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT registration_number FROM vehicles')
+        data = cursor.fetchall()
+        vehicle_no = []
+        for i in data:
+            vehicle_no.append(i[0])
+        return vehicle_no
+    except Exception as e:
+        print(f"Error getting vehicle numbers: {e}")
+        return []
+
 # Function to generate a report
 
 def generate_report():
     import subprocess
     subprocess.run(["python3", BASE_DIR+"/demo3.py"])
 
+def fill_weight():
+    # Get the vehicle number from the entry field
+    vehicle_no = entry_vehicle_number.get()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    # Query the database to get the weight for the vehicle number
+    cursor.execute("SELECT weight FROM vehicles WHERE registration_number = ?", (vehicle_no,))
+    result = cursor.fetchone()
+    
+    if result:
+        # Get the weight_before_load from the query result
+        weight_before = result[0]
+        
+        # Set the weight_before_load in the corresponding entry field
+        entry_weight_before_load.delete(0, tk.END)
+        entry_weight_before_load.insert(0, weight_before)
+    else:
+        # Clear the entry field if no vehicle is found
+        entry_weight_before_load.delete(0, tk.END)
 
 # Function to refresh the form
 def refresh_form():
@@ -423,8 +450,8 @@ nav_frame.pack(fill='x')
 report_button = ctk.CTkButton(nav_frame, text="Report", font=ctk.CTkFont(size=16), command=generate_report)
 report_button.pack(side='right', padx=10, pady=5)
 
-print_button = ctk.CTkButton(nav_frame, text="Print Receipt", font=ctk.CTkFont(size=16), command=print_receipt)
-print_button.pack(side='right', padx=10, pady=5)
+# print_button = ctk.CTkButton(nav_frame, text="Print Receipt", font=ctk.CTkFont(size=16), command=print_receipt)
+# print_button.pack(side='right', padx=10, pady=5)
 
 add_vehicle_button = ctk.CTkButton(nav_frame, text="Add Vehicle", font=ctk.CTkFont(size=16), command=lambda: notebook.select(add_vehicle_tab))
 add_vehicle_button.pack(side='right', padx=10, pady=5)
@@ -488,11 +515,13 @@ entry_name.grid(row=1, column=1, padx=10, pady=10)
 # Vehicle Number
 vehicle_number_label = ctk.CTkLabel(frame, text="Vehicle Number: *", font=ctk.CTkFont(size=18))
 vehicle_number_label.grid(row=1, column=2, padx=10, pady=10, sticky="w")
-
 # Create the combobox for vehicle number
 vehicle_numbers = get_vehicle_numbers()
 entry_vehicle_number = Combobox(frame, values=vehicle_numbers, font=("Arial", 18))
 entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10, sticky="ew")
+
+entry_vehicle_number.bind("<KeyRelease>", lambda event: fill_weight())
+
 # Driver Name
 driver_name_label = ctk.CTkLabel(frame, text="Driver Name: *", font=ctk.CTkFont(size=18))
 driver_name_label.grid(row=1, column=4, padx=10, pady=10, sticky="w")
@@ -566,15 +595,20 @@ registration_number_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 entry_registration_number = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
 entry_registration_number.grid(row=2, column=1, padx=10, pady=10)
 
+weight_label = ctk.CTkLabel(add_vehicle_frame, text="Weight:", font=ctk.CTkFont(size=18))
+weight_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+entry_weight = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_weight.grid(row=3, column=1, padx=10, pady=10)
+
 # Date of Purchase
 date_of_purchase_label = ctk.CTkLabel(add_vehicle_frame, text="Date of Purchase:", font=ctk.CTkFont(size=18))
-date_of_purchase_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+date_of_purchase_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 entry_date_of_purchase = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
-entry_date_of_purchase.grid(row=3, column=1, padx=10, pady=10)
+entry_date_of_purchase.grid(row=4, column=1, padx=10, pady=10)
 
 # Add Button
 add_vehicle_button = ctk.CTkButton(add_vehicle_frame, text="Add", font=ctk.CTkFont(size=18), command = add_vehicle)
-add_vehicle_button.grid(row=4, column=1, pady=20)
+add_vehicle_button.grid(row=5, column=1, pady=20)
 
 
 # Contact details
