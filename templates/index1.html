@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+    <link rel="icon" href="https://t3.ftcdn.net/jpg/05/08/03/46/360_F_508034608_7DyjDzjQeXqnnmYZGZozkXOrEzGS6bdW.jpg"/> 
+  </head>
+
+  
+  <body>
+    <style>
+      *{
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+      body{
+        background-image: url("https://c4.wallpaperflare.com/wallpaper/910/11/748/fruits-fruits-and-vegetables-fruit-still-life-vegetable-hd-wallpaper-preview.jpg");
+        background-size: 100% 100%;
+        display: flex;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        min-height: 100vh;
+        
+      }
+      .wrapper{
+        width: 430px;
+        background: #ffffff;
+        border-radius: 5px;
+        padding: 30px;
+        box-shadow: 7px 7px 12px rgba(0,0,0,0.05);
+      }
+      .wrapper header{
+        color: #ff0000;
+        font-size: 30px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .wrapper form{
+        height: 250px;
+        display: flex;
+        cursor: pointer;
+        margin: 30px 0;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        border-radius: 5px;
+        border: 4px dashed #0037ff;
+      }
+    </style>
+    
+      <div class="wrapper">
+      <header>Fruit Recognition System</header>
+      <form action="" method="post">     
+        <input type="file" name="file" id="file">
+      <p><img id="output" width="200"/></p>
+
+
+      <input type="submit" value="Upload">
+      </form>
+      <section class="progress-area"></section>
+      <section class="uploaded-area"></section>
+
+     
+  </body>
+</html>
