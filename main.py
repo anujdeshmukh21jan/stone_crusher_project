@@ -6,10 +6,13 @@ import sqlite3
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
-
+from tkinter import messagebox
 from tkinter.ttk import Combobox
 from constant import DB_PATH, BASE_DIR, RECIEPT_PATH
 import platform
+import sys
+
+
 if platform.system() == "Windows":
     import win32print
     import win32api
@@ -21,11 +24,18 @@ import pdfkit
 
 import pdfkit
 
+
+# Set the path to wkhtmltopdf executable file
+path_wkhtmltopdf = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe" 
+config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+
+
 def convert_html_to_pdf(html_template):
-    file_name = f"{RECIEPT_PATH}/receipt{str(datetime.now())}.pdf"
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    file_name = os.path.join(RECIEPT_PATH, f"receipt{timestamp}.pdf")
     try:
         # Convert HTML string to PDF
-        pdfkit.from_string(str(html_template), file_name)
+        pdfkit.from_string(str(html_template), file_name, configuration=config)
         print(f"PDF file generated: {file_name}")
     except Exception as e:
         print(f"Error generating PDF: {e}")
@@ -55,7 +65,7 @@ def render_template(filepath, data):
                 file.write(html_output)
             with open(BASE_DIR+"receipt_output.html", 'r') as f:
                 html_content = f.read()
-            print("HTML file generated: receipt_output.html")
+            # print("HTML file generated: receipt_output.html")
             return html_content
     except Exception as e:
         print(f"Error rendering template: {e}")
@@ -66,20 +76,20 @@ def print_receipt(file_path):
             0,
             "print",
             file_path,
-            f'/d:"{win32print.GetDefaultPrinter()}"',
+            win32print.GetDefaultPrinter(),
             ".",
             0
-        )
+        ) 
     else:
-        print("Platform is not Windows")
+        # print("Platform is not Windows")
         conn = cups.Connection()
-        print("CUPS connection established")
+        # print("CUPS connection established")
         printers = conn.getPrinters()
-        print("Printers retrieved")
+        # print("Printers retrieved")
         printer_name = list(printers.keys())[0]  # Use the first available printer
         print(f"Printer name: {printer_name}")
         conn.printFile(printer_name, file_path, "Receipt", {})
-        print("File printed")
+        # print("File printed")
 
 # Function to initialize the database
 def initialize_db():
@@ -145,7 +155,7 @@ def calculate_total_weight_and_brass():
             weight_after_load = float(entry_weight_after_load.get())
         
         total_weight_tonnes = (weight_after_load - weight_before_load) / 1000
-        brass = (weight_after_load - weight_before_load) / 4
+        brass = total_weight_tonnes / 4
         
         entry_total_weight_tonnes.configure(state='normal')
         entry_total_weight_tonnes.delete(0, tk.END)
@@ -197,7 +207,7 @@ def submit_form(event=None):
     
     for entry, field_name in required_fields:
         if not entry.get():
-            tk.messagebox.showerror("Error", f"{field_name} is required.")
+            messagebox.showerror("Error", f"{field_name} is required.")
             return
 
     # Convert weights to float
@@ -205,7 +215,7 @@ def submit_form(event=None):
         weight_before_load = float(weight_before_load)
         weight_after_load = float(weight_after_load)
     except ValueError:
-        tk.messagebox.showerror("Error", "Weight fields must be numeric.")
+        messagebox.showerror("Error", "Weight fields must be numeric.")
         return
 
     # Calculate total weight and brass
@@ -213,7 +223,8 @@ def submit_form(event=None):
     brass = total_weight_tonnes / 4
 
     # Get selected sizes
-    sizes_selected = [str(size) for size, var in zip([6, 12, 20, 40], size_vars) if var.get()]
+    sizes_list = [6, 12, 20, 40, "GSB"]
+    sizes_selected = [str(size) for size, var in zip(sizes_list, size_vars) if var.get()]
 
     # Insert data into the database
     conn = sqlite3.connect(DB_PATH)
@@ -221,7 +232,7 @@ def submit_form(event=None):
     cursor.execute('''
         INSERT INTO records (bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, ', '.join(sizes_selected)))
+    ''', (bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, (', '.join(sizes_selected))))
     conn.commit()
     conn.close()
 
@@ -242,7 +253,7 @@ def submit_form(event=None):
     # Refresh the form fields
     refresh_form()
     refresh_date_time()
-    tk.messagebox.showinfo("Success", "report added successfully")
+    messagebox.showinfo("Success", "report added successfully")
     data = {
         "bill_no": bill_no,
         "name": name,
@@ -254,7 +265,7 @@ def submit_form(event=None):
         "net_weight": weight_after_load - weight_before_load,
         "total_weight_tonnes": total_weight_tonnes,
         "brass": brass,
-        "sizes_selected": ", ".join([i+" mm" for i in sizes_selected])
+        "sizes_selected": ", ".join([i+ (" mm" if i != "GSM" else "") for i in sizes_selected])
     }
     html_template = render_template(os.path.join(BASE_DIR, "reciept.html"), data=data)
     # Generate PDF receipt
@@ -267,7 +278,6 @@ def add_vehicle(event=None):
     registration_number = entry_registration_number.get()
     date_of_purchase = entry_date_of_purchase.get()
     weight = entry_weight.get()
-    
     required_fields = [
         (entry_manufacturer, "manufacturer"),
         (entry_model, "Model Name"),
@@ -278,7 +288,7 @@ def add_vehicle(event=None):
     
     for entry, field_name in required_fields:
         if not entry.get():
-            tk.messagebox.showerror("Error", f"{field_name} is required.")
+            messagebox.showerror("Error", f"{field_name} is required.")
             return
     
     conn = sqlite3.connect(DB_PATH)
@@ -289,8 +299,13 @@ def add_vehicle(event=None):
     ''', (manufacturer, model, registration_number, date_of_purchase, weight))
     conn.commit()
     conn.close()
-    tk.messagebox.showinfo("Success", "Vehicle added successfully")
+    messagebox.showinfo("Success", "Vehicle added successfully")
     refresh_vehicle_form()
+    refresh_vehicle_dropdown()
+    
+def refresh_vehicle_dropdown():
+    updated_vehicle_numbers = get_vehicle_numbers()
+    entry_vehicle_number['values'] = updated_vehicle_numbers
 
 def refresh_vehicle_form():
     entry_manufacturer.delete(0, tk.END)
@@ -298,7 +313,6 @@ def refresh_vehicle_form():
     entry_registration_number.delete(0, tk.END)
     entry_date_of_purchase.delete(0, tk.END)
     entry_weight.delete(0, tk.END)
-    
     
     
 def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, weight_before_load, weight_after_load, total_weight_tonnes, brass, sizes_selected):
@@ -346,6 +360,7 @@ def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, wei
 def get_vehicle_numbers():
     # This function should return a list of vehicle numbers from the vehicle table
     # Implement this function based on your database setup
+
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -354,41 +369,70 @@ def get_vehicle_numbers():
         vehicle_no = []
         for i in data:
             vehicle_no.append(i[0])
+        entry_vehicle_number.configure(values=vehicle_no)
         return vehicle_no
+
     except Exception as e:
         print(f"Error getting vehicle numbers: {e}")
         return []
-
 # Function to generate a report
 
 def generate_report():
     import subprocess
-    subprocess.run(["python3", BASE_DIR+"/demo3.py"])
+    subprocess.run(["python", BASE_DIR+"/demo3.py"])
 
-def fill_weight():
-    # Get the vehicle number from the entry field
-    vehicle_no = entry_vehicle_number.get()
+vehicle_weight_cache = {}
+
+def fill_weight_from_cache(vehicle_number):
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Query the database to get the weight for the vehicle number
-    cursor.execute("SELECT weight FROM vehicles WHERE registration_number = ?", (vehicle_no,))
-    result = cursor.fetchone()
+    # If not in cache, fetch from the database and store in cache
+    cursor.execute("SELECT registration_number, weight FROM vehicles")
+
+    # Fetch all the results
+    vehicle_data = cursor.fetchall()
+
+    # Iterate over the data and populate the dictionary
+    for vehicle_no, weight in vehicle_data:
+        vehicle_weight_cache[vehicle_no] = weight
+    weight = vehicle_weight_cache[vehicle_number]
     
-    if result:
-        # Get the weight_before_load from the query result
-        weight_before = result[0]
-        
-        # Set the weight_before_load in the corresponding entry field
-        entry_weight_before_load.delete(0, tk.END)
-        entry_weight_before_load.insert(0, weight_before)
-    else:
-        # Clear the entry field if no vehicle is found
-        entry_weight_before_load.delete(0, tk.END)
+    entry_weight_before_load.delete(0, tk.END)
+    entry_weight_before_load.insert(0, weight)
+    # Set the weight in your Tkinter entry or label
+    # weight_entry.insert(0, weight)
+
+def autocomplete(event):
+    search_term = entry_name.get()
+    suggestions = [name for name in dynamic_names if search_term.lower() in name.lower()]
+    entry_name.configure(values=suggestions)
+    entry_name.event_generate("<<ComboboxEdited>>")
+
+def fetch_dynamic_names():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM records")
+        names = cursor.fetchall()
+        conn.close()
+        names_list = [i[0] for i in names]
+        return names_list
+    except:
+        return []
+
+def fill_weight(event):
+    search_term = entry_vehicle_number.get()
+    suggestions = [name for name in vehicle_numbers if search_term.lower() in name.lower()]
+    entry_vehicle_number.configure(values=suggestions)
+    entry_vehicle_number.event_generate("<<ComboboxEdited>>")
+    fill_weight_from_cache(entry_vehicle_number.get())
+    
 
 # Function to refresh the form
 def refresh_form():
-    entry_name.delete(0, tk.END)
-    entry_vehicle_number.delete(0, tk.END)
+    entry_name.set("")
+    entry_vehicle_number.set("")
     entry_driver_name.delete(0, tk.END)
     entry_weight_before_load.delete(0, tk.END)
     entry_weight_after_load.delete(0, tk.END)
@@ -401,6 +445,7 @@ def refresh_form():
     for size_var in size_vars:
         size_var.set(0)
     refresh_date_time()
+    get_vehicle_numbers()
 
 # Function to refresh the date and time
 def refresh_date_time():
@@ -428,9 +473,15 @@ root.bind('<Return>', submit_form)
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+def go_home_and_refresh():
+    notebook.select(main_tab)
+    refresh_form()
+
+
+
 def toggle_dark_light_mode():
     current_mode = ctk.get_appearance_mode()
-    print(current_mode)
+
     new_mode = "Dark" if current_mode == "Light" else "Light"
     ctk.set_appearance_mode(new_mode)
 
@@ -438,14 +489,23 @@ toggle_button = ctk.CTkButton(root, text="Toggle Dark/Light Mode", font=ctk.CTkF
 toggle_button.pack(side='top', anchor='ne', padx=10, pady=10)  # Place at top right corner
 
 # Title Label
-title_label = ctk.CTkLabel(root, text="Ashirwad Stone Crusher, Junner", font=ctk.CTkFont(size=30, weight="bold"))
-title_label.pack(pady=10)
+title_label = ctk.CTkLabel(root, text="Stone Crusher", font=ctk.CTkFont(size=50, weight="bold"))
+title_label.pack(pady=12)
 quotation_label = ctk.CTkLabel(root, text="Cotation", font=ctk.CTkFont(size=24))
 quotation_label.pack(pady=7)
 
 # Navigation Bar
 nav_frame = ctk.CTkFrame(root, height=40, bg_color="transparent")
 nav_frame.pack(fill='x')
+
+
+def restart_app():
+    # This will terminate the current process and relaunch it
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
+
+refresh_button = ctk.CTkButton(nav_frame, text="Refresh", font=ctk.CTkFont(size=16), command=restart_app)
+refresh_button.pack(side='right', padx=10,pady=5)
 
 report_button = ctk.CTkButton(nav_frame, text="Report", font=ctk.CTkFont(size=16), command=generate_report)
 report_button.pack(side='right', padx=10, pady=5)
@@ -456,9 +516,9 @@ report_button.pack(side='right', padx=10, pady=5)
 add_vehicle_button = ctk.CTkButton(nav_frame, text="Add Vehicle", font=ctk.CTkFont(size=16), command=lambda: notebook.select(add_vehicle_tab))
 add_vehicle_button.pack(side='right', padx=10, pady=5)
 
-home_button = ctk.CTkButton(nav_frame, text="Home", font=ctk.CTkFont(size=16), command=lambda: notebook.select(main_tab))
+home_button = ctk.CTkButton(nav_frame, text="Home", font=ctk.CTkFont(size=16), command=go_home_and_refresh)
 home_button.pack(side='right', padx=10, pady=5)
-
+                 
 # Notebook for tab management
 notebook = ttk.Notebook(root)
 notebook.pack(fill='both', expand=True)
@@ -509,18 +569,32 @@ refresh_date_time_button.grid(row=0, column=6, padx=10, pady=10)
 # Name
 name_label = ctk.CTkLabel(frame, text="Name: *", font=ctk.CTkFont(size=18))
 name_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-entry_name = ctk.CTkEntry(frame, width=200, font=ctk.CTkFont(size=18))
-entry_name.grid(row=1, column=1, padx=10, pady=10) 
+entry_name = ctk.CTkComboBox(frame, width=200, font=ctk.CTkFont(size=18), hover=True)
+entry_name.set("")
+entry_name.grid(row=1, column=1, padx=10, pady=10)
+entry_name.bind("<KeyRelease>", autocomplete)
+
+# Fetch dynamic names and update the combobox
+dynamic_names = fetch_dynamic_names()
+entry_name.configure(values=dynamic_names)
+
+# Hide the listbox initially
+# listbox_names.grid_forget()
+# listbox_names.bind("<ButtonRelease-1>", on_select_name)
 
 # Vehicle Number
 vehicle_number_label = ctk.CTkLabel(frame, text="Vehicle Number: *", font=ctk.CTkFont(size=18))
 vehicle_number_label.grid(row=1, column=2, padx=10, pady=10, sticky="w")
 # Create the combobox for vehicle number
-vehicle_numbers = get_vehicle_numbers()
-entry_vehicle_number = Combobox(frame, values=vehicle_numbers, font=("Arial", 18))
-entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10, sticky="ew")
+entry_vehicle_number = ctk.CTkComboBox(frame, width=200, font=ctk.CTkFont(size=18), hover=True)
+entry_vehicle_number.set("")
+entry_vehicle_number.grid(row=1, column=3, padx=10, pady=10)
 
-entry_vehicle_number.bind("<KeyRelease>", lambda event: fill_weight())
+vehicle_numbers = get_vehicle_numbers()
+
+
+entry_vehicle_number.bind("<KeyRelease>",fill_weight)
+
 
 # Driver Name
 driver_name_label = ctk.CTkLabel(frame, text="Driver Name: *", font=ctk.CTkFont(size=18))
@@ -556,64 +630,75 @@ brass_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 entry_brass = ctk.CTkEntry(frame, width=200, font=ctk.CTkFont(size=18), state='disabled')
 entry_brass.grid(row=4, column=1, padx=10, pady=10)
 
-
 # Checkboxes for Sizes
 size_label = ctk.CTkLabel(frame, text="Select Size:", font=ctk.CTkFont(size=18))
 size_label.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 size_vars = []
-sizes = [6, 12, 20, 40]
+sizes = [6, 12, 20, 40, "GSB"]
 for idx, size in enumerate(sizes):
     size_var = tk.IntVar()
     size_vars.append(size_var)
-    size_checkbox = ctk.CTkCheckBox(frame, text=f"{size} mm", variable=size_var, font=ctk.CTkFont(size=18))
+    if size == "GSB" :
+        size_checkbox = ctk.CTkCheckBox(frame, text= size, variable=size_var, font=ctk.CTkFont(size=18))
+    else:
+        size_checkbox = ctk.CTkCheckBox(frame, text=f"{size} mm", variable=size_var, font=ctk.CTkFont(size=18))
     size_checkbox.grid(row=5+idx, column=1, padx=10, pady=5, sticky="w")
 
-# Submit Button
-submit_button = ctk.CTkButton(root, text="Submit", font=ctk.CTkFont(size=18), command=submit_form)
-submit_button.pack(pady=20)
+# Submit Button (inside the inner frame)
+submit_button = ctk.CTkButton(frame, text="Submit", font=ctk.CTkFont(size=18), command=submit_form)
+submit_button.grid(row=13, column=3, pady=20)
+
+
+
+
+
+
+
+
 
 # Frame for the add vehicle form in the add vehicle tab
 add_vehicle_frame = ctk.CTkFrame(add_vehicle_tab)
 add_vehicle_frame.pack(pady=40, padx=40, fill="both", expand=True)
 
+# Inner frame to center the fields
+inner_frame = ctk.CTkFrame(add_vehicle_frame)
+inner_frame.place(relx=0.5, rely=0.4, anchor=tk.CENTER)  # Adjusted relx and rely for proper centering
+
 # Add Vehicle form fields
 # Manufacturer
-manufacturer_label = ctk.CTkLabel(add_vehicle_frame, text="Manufacturer:", font=ctk.CTkFont(size=18))
+manufacturer_label = ctk.CTkLabel(inner_frame, text="Manufacturer:", font=ctk.CTkFont(size=18))
 manufacturer_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-entry_manufacturer = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_manufacturer = ctk.CTkEntry(inner_frame, width=200, font=ctk.CTkFont(size=18))
 entry_manufacturer.grid(row=0, column=1, padx=10, pady=10)
 
 # Model
-model_label = ctk.CTkLabel(add_vehicle_frame, text="Model:", font=ctk.CTkFont(size=18))
+model_label = ctk.CTkLabel(inner_frame, text="Model:", font=ctk.CTkFont(size=18))
 model_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-entry_model = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_model = ctk.CTkEntry(inner_frame, width=200, font=ctk.CTkFont(size=18))
 entry_model.grid(row=1, column=1, padx=10, pady=10)
 
 # Registration Number
-registration_number_label = ctk.CTkLabel(add_vehicle_frame, text="Registration Number:", font=ctk.CTkFont(size=18))
+registration_number_label = ctk.CTkLabel(inner_frame, text="Registration Number:", font=ctk.CTkFont(size=18))
 registration_number_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-entry_registration_number = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_registration_number = ctk.CTkEntry(inner_frame, width=200, font=ctk.CTkFont(size=18))
 entry_registration_number.grid(row=2, column=1, padx=10, pady=10)
 
-weight_label = ctk.CTkLabel(add_vehicle_frame, text="Weight:", font=ctk.CTkFont(size=18))
+# Weight of the vehicle
+weight_label = ctk.CTkLabel(inner_frame, text="Weight:", font=ctk.CTkFont(size=18))
 weight_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
-entry_weight = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_weight = ctk.CTkEntry(inner_frame, width=200, font=ctk.CTkFont(size=18))
 entry_weight.grid(row=3, column=1, padx=10, pady=10)
 
 # Date of Purchase
-date_of_purchase_label = ctk.CTkLabel(add_vehicle_frame, text="Date of Purchase:", font=ctk.CTkFont(size=18))
+date_of_purchase_label = ctk.CTkLabel(inner_frame, text="Date of Purchase:", font=ctk.CTkFont(size=18))
 date_of_purchase_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
-entry_date_of_purchase = ctk.CTkEntry(add_vehicle_frame, width=200, font=ctk.CTkFont(size=18))
+entry_date_of_purchase = ctk.CTkEntry(inner_frame, width=200, font=ctk.CTkFont(size=18))
 entry_date_of_purchase.grid(row=4, column=1, padx=10, pady=10)
 
-# Add Button
-add_vehicle_button = ctk.CTkButton(add_vehicle_frame, text="Add", font=ctk.CTkFont(size=18), command = add_vehicle)
-add_vehicle_button.grid(row=5, column=1, pady=20)
+# Add Button (outside the inner frame)
+add_vehicle_button = ctk.CTkButton(add_vehicle_frame, text="Add", font=ctk.CTkFont(size=18), command=add_vehicle)
+add_vehicle_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)  # Centered in the outer frame
 
-
-# Contact details
-contact_label = ctk.CTkLabel(root, text="Contact: +91 9168663915", font=ctk.CTkFont(size=18))
-contact_label.place(relx=1.0, rely=1.0, anchor='se', x=-10, y=-10)
 
 # Initialize date and time fields
 initialize_db()

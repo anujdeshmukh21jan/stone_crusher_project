@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 import sqlite3
 import pandas as pd
 import os
-from constant import DB_PATH, BASE_DIR
+from constant import DB_PATH, BASE_DIR, EXCEL_PATH
+from tkinter import messagebox
 # Fetch data from the database
 def fetch_data():
     conn = sqlite3.connect(DB_PATH)
@@ -202,6 +203,7 @@ class VehicleDataApp(ctk.CTk):
             self.tree.move(child, '', index)
 
         self.tree.heading(column, text=column + (' ▲' if self.sort_reverse else ' ▼'))
+
     def download_as_excel(self):
         search_term = self.search_entry.get().lower()
         bill_no = self.bill_no_entry.get()
@@ -256,7 +258,8 @@ class VehicleDataApp(ctk.CTk):
             return
 
         df = pd.DataFrame(filtered_data, columns=["bill_no", "name", "driver_name", "time", "date", "vehicle_number", "weight_before_load", "weight_after_load", "total_weight_tonnes", "brass", "sizes"])
-        file_path = f"{BASE_DIR}/report-{str(datetime.now())}.xlsx"
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        file_path = os.path.join(EXCEL_PATH, f"report-{timestamp}.xlsx")
         df.to_excel(file_path, index=False)
 
         # Confirm file saved
@@ -265,7 +268,7 @@ class VehicleDataApp(ctk.CTk):
         else:
             print(f"Data successfully exported to {file_path}")
 
-        tk.messagebox.showinfo("Success", f"Excel generate successfully at {file_path}")
+        messagebox.showinfo("Success", f"Excel generate successfully at {file_path}")
 
 if __name__ == "__main__":
     app = VehicleDataApp()
