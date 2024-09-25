@@ -1,68 +1,3 @@
-<<<<<<< HEAD
-from flask import Flask,render_template,request,url_for,redirect,session
-import re
-import requests, json
-from PIL import Image
-from PIL import Image
-import imagehash
-
-app=Flask(__name__)
-
-@app.route('/apple')
-def apple():
-    return render_template('apple.html')
-@app.route('/banana')
-def banana():
-    return render_template('banana.html')
-@app.route('/watermelon')
-def watermelon():
-    return render_template('watermelon.html')
-@app.route('/grapes')
-def grapes():
-    return render_template('grapes.html')
-@app.route('/pineapple')
-def pineapple():
-    return render_template('pineapple.html')
-@app.route('/none')
-def none():
-    return render_template('none.html')
-
-@app.route('/', methods=['GET','POST'])
-def index():
-    if request.method == 'POST':
-        file = request.form['file']
-        p=['apple.jpg','banana.jpg','watermelon.jpg','grapes.jpg','pineapple.jpg']
-        ans=[]
-        for i in range(0,len(p)):
-            hash1 = imagehash.average_hash(Image.open('images/'+p[i]))
-            hash2 = imagehash.average_hash(Image.open('images/'+file))
-            diff = hash1 - hash2
-            ans.append(diff)
-        print(ans)
-        if min(ans)<=6:
-            ans1=p[ans.index(min(ans))][:-4]
-        else:
-            ans1='none'
-        print(ans1)
-        if ans1=='apple':
-            print(ans1)
-            return redirect(url_for('apple'))
-        elif ans1=='banana':
-            return redirect(url_for('banana'))
-        elif ans1=='watermelon':
-            return redirect(url_for('watermelon'))
-        elif ans1=='grapes':
-            return redirect(url_for('grapes'))
-        elif ans1=='pineapple':
-            return redirect(url_for('pineapple'))
-        else:
-            return redirect(url_for('none'))
-    return render_template('index1.html')
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
-=======
 import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
@@ -288,8 +223,7 @@ def submit_form(event=None):
     brass = total_weight_tonnes / 4
 
     # Get selected sizes
-    sizes_list = [6, 12, 20, 40, "GSB"]
-    sizes_selected = [str(size) for size, var in zip(sizes_list, size_vars) if var.get()]
+    sizes_selected = [str(size) for size, var in zip([6, 12, 20, 40, "GSM"], size_vars) if var.get()]
 
     # Insert data into the database
     conn = sqlite3.connect(DB_PATH)
@@ -313,7 +247,7 @@ def submit_form(event=None):
     print(f"Weight After Load: {weight_after_load}")
     print(f"Total Weight in tonnes: {total_weight_tonnes:.2f}")
     print(f"Total Weight in Brass: {brass:.2f}")
-    print(f"Selected Sizes: {', '.join(sizes_selected)} mm")
+    print(f"Selected Sizes: {', '.join(sizes_selected)}")
 
     # Refresh the form fields
     refresh_form()
@@ -330,7 +264,7 @@ def submit_form(event=None):
         "net_weight": weight_after_load - weight_before_load,
         "total_weight_tonnes": total_weight_tonnes,
         "brass": brass,
-        "sizes_selected": ", ".join([i+ (" mm" if i != "GSM" else "") for i in sizes_selected])
+        "sizes_selected": ", ".join([i + (" mm" if i != "GSM" else "") for i in sizes_selected])
     }
     html_template = render_template(os.path.join(BASE_DIR, "reciept.html"), data=data)
     # Generate PDF receipt
@@ -359,7 +293,7 @@ def add_vehicle(event=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO vehicles (manufacuturer, model, registration_number, date_of_purchase, weight)
+        INSERT INTO vehicles (manufacturer, model, registration_number, date_of_purchase, weight)
         VALUES (?, ?, ?, ?, ?)
     ''', (manufacturer, model, registration_number, date_of_purchase, weight))
     conn.commit()
@@ -388,7 +322,7 @@ def generate_receipt(bill_no, name, driver_name, time, date, vehicle_number, wei
     c.setFont("Helvetica", 12)
 
     # Title
-    c.drawString(50, 750, "Ashirwad Stone Crusher, Junner")
+    c.drawString(50, 750, "Stone Crusher")
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, 730, "Receipt")
     c.line(50, 725, 200, 725)
@@ -440,8 +374,8 @@ def get_vehicle_numbers():
     except Exception as e:
         print(f"Error getting vehicle numbers: {e}")
         return []
+    
 # Function to generate a report
-
 def generate_report():
     import subprocess
     subprocess.run(["python", BASE_DIR+"/demo3.py"])
@@ -554,8 +488,8 @@ toggle_button = ctk.CTkButton(root, text="Toggle Dark/Light Mode", font=ctk.CTkF
 toggle_button.pack(side='top', anchor='ne', padx=10, pady=10)  # Place at top right corner
 
 # Title Label
-title_label = ctk.CTkLabel(root, text="Stone Crusher", font=ctk.CTkFont(size=50, weight="bold"))
-title_label.pack(pady=12)
+title_label = ctk.CTkLabel(root, text="Stone Crusher", font=ctk.CTkFont(size=30, weight="bold"))
+title_label.pack(pady=10)
 quotation_label = ctk.CTkLabel(root, text="Cotation", font=ctk.CTkFont(size=24))
 quotation_label.pack(pady=7)
 
@@ -695,25 +629,31 @@ brass_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 entry_brass = ctk.CTkEntry(frame, width=200, font=ctk.CTkFont(size=18), state='disabled')
 entry_brass.grid(row=4, column=1, padx=10, pady=10)
 
+
 # Checkboxes for Sizes
 size_label = ctk.CTkLabel(frame, text="Select Size:", font=ctk.CTkFont(size=18))
 size_label.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+
+# Checkboxes for Sizes
+size_label = ctk.CTkLabel(frame, text="Select Size:", font=ctk.CTkFont(size=18))
+size_label.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+
 size_vars = []
-sizes = [6, 12, 20, 40, "GSB"]
+sizes = [6, 12, 20, 40, "GSM"]  # Add GSM to the list of sizes
 for idx, size in enumerate(sizes):
     size_var = tk.IntVar()
     size_vars.append(size_var)
-    if size == "GSB" :
-        size_checkbox = ctk.CTkCheckBox(frame, text= size, variable=size_var, font=ctk.CTkFont(size=18))
+    if size == "GSM":
+        size_checkbox = ctk.CTkCheckBox(frame, text="GSM", variable=size_var, font=ctk.CTkFont(size=18))
     else:
         size_checkbox = ctk.CTkCheckBox(frame, text=f"{size} mm", variable=size_var, font=ctk.CTkFont(size=18))
     size_checkbox.grid(row=5+idx, column=1, padx=10, pady=5, sticky="w")
 
+
+
 # Submit Button (inside the inner frame)
 submit_button = ctk.CTkButton(frame, text="Submit", font=ctk.CTkFont(size=18), command=submit_form)
-submit_button.grid(row=13, column=3, pady=20)
-
-
+submit_button.grid(row=10, column=3, pady=20)
 
 
 
@@ -765,6 +705,7 @@ add_vehicle_button = ctk.CTkButton(add_vehicle_frame, text="Add", font=ctk.CTkFo
 add_vehicle_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)  # Centered in the outer frame
 
 
+
 # Initialize date and time fields
 initialize_db()
 refresh_date_time()
@@ -775,4 +716,3 @@ root.mainloop()
 
 
 
->>>>>>> d7c70f163f49ed74f86177b22ed4104959e6519b
