@@ -7,7 +7,6 @@ import imagehash
 
 app=Flask(__name__)
 
-
 @app.route('/apple')
 def apple():
     return render_template('apple.html')
